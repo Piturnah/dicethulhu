@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use bevy_inspector_egui::{WorldInspectorPlugin, RegisterInspectable};
+use bevy_inspector_egui::{RegisterInspectable, WorldInspectorPlugin};
 use bevy_rapier2d::prelude::RapierDebugRenderPlugin;
 
 use crate::Player;
