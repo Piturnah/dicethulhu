@@ -17,7 +17,7 @@ struct PlayerSheet(Handle<TextureAtlas>);
 struct ArenaSprite(Handle<Image>);
 struct SkyboxSprite(Handle<Image>);
 struct CloudsSprite(Handle<Image>);
-struct DicethulhuSprite(Handle<Image>);
+struct DicethulhuSheet(Handle<TextureAtlas>);
 struct BulletSprite(Handle<Image>);
 struct GunSheet(Handle<TextureAtlas>);
 
@@ -38,14 +38,23 @@ fn load_graphics(
     let atlas_handle = texture_atlases.add(atlas);
     commands.insert_resource(GunSheet(atlas_handle));
 
+    let image = assets.load("Dicethulhu.png");
+    let atlas = TextureAtlas::from_grid_with_padding(
+        image,
+        Vec2::new(320.0, 180.0),
+        16,
+        1,
+        Vec2::splat(2.0),
+    );
+    let atlas_handle = texture_atlases.add(atlas);
+    commands.insert_resource(DicethulhuSheet(atlas_handle));
+
     let image_handle = assets.load("Arena.png");
     commands.insert_resource(ArenaSprite(image_handle));
     let image_handle = assets.load("Skybox.png");
     commands.insert_resource(SkyboxSprite(image_handle));
     let image_handle = assets.load("SkyboxClouds.png");
     commands.insert_resource(CloudsSprite(image_handle));
-    let image_handle = assets.load("DicethulhuTest.png");
-    commands.insert_resource(DicethulhuSprite(image_handle));
     let image_handle = assets.load("Laser.png");
     commands.insert_resource(BulletSprite(image_handle));
 }
@@ -61,7 +70,7 @@ fn init_scene(
     mut commands: Commands,
     arena_texture: Res<ArenaSprite>,
     skybox_texture: Res<SkyboxSprite>,
-    dicethulhu_texture: Res<DicethulhuSprite>,
+    dicethulhu_texture: Res<DicethulhuSheet>,
 ) {
     commands
         .spawn_bundle(SpriteBundle {
@@ -82,8 +91,9 @@ fn init_scene(
         .insert(Name::from("Skybox"));
 
     commands
-        .spawn_bundle(SpriteBundle {
-            texture: dicethulhu_texture.0.clone(),
+        .spawn_bundle(SpriteSheetBundle {
+            sprite: TextureAtlasSprite::new(0),
+            texture_atlas: dicethulhu_texture.0.clone(),
             transform: Transform {
                 translation: Vec3::new(0.0, 0.0, 40.0),
                 ..Default::default()
