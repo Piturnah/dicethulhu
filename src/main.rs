@@ -47,11 +47,11 @@ fn main() {
 }
 
 fn player_movement(
-    mut player_query: Query<(&mut Player, &mut Transform)>,
+    mut player_query: Query<(&mut Player, &mut Transform, &mut TextureAtlasSprite)>,
     keyboard: Res<Input<KeyCode>>,
     time: Res<Time>,
 ) {
-    let (mut player, mut transform) = player_query.single_mut();
+    let (mut player, mut transform, mut sprite) = player_query.single_mut();
 
     let mut delta = 0.0;
     if keyboard.pressed(KeyCode::D) {
@@ -63,6 +63,8 @@ fn player_movement(
 
     if delta != 0.0 {
         player.anim_state = PlayerAnimState::Run;
+
+        sprite.flip_x = delta < 0.0;
     } else {
         player.anim_state = PlayerAnimState::Idle;
     }
@@ -74,7 +76,8 @@ fn setup_physics(mut commands: Commands) {
     commands
         .spawn()
         .insert(Collider::cuboid(500.0, 50.0))
-        .insert_bundle(TransformBundle::from(Transform::from_xyz(0.0, -100.0, 0.0)));
+        .insert_bundle(TransformBundle::from(Transform::from_xyz(0.0, -100.0, 0.0)))
+        .insert(Name::from("Ground"));
 }
 
 fn spawn_player(mut commands: Commands, sprite_sheet: Res<PlayerSheet>) {
@@ -95,18 +98,15 @@ fn spawn_player(mut commands: Commands, sprite_sheet: Res<PlayerSheet>) {
         .insert(Name::new("Player"));
 }
 
-fn animate_player(mut commands: Commands, player_query: Query<(Entity, &Player)>, time: Res<Time>) {
-    let (id, player) = player_query.single();
+fn animate_player(mut player_query: Query<(&Player, &mut TextureAtlasSprite)>, time: Res<Time>) {
+    let (player, mut sprite) = player_query.single_mut();
 
-    commands.entity(id).remove::<TextureAtlasSprite>();
-    commands
-        .entity(id)
-        .insert(TextureAtlasSprite::new(match player.anim_state {
-            PlayerAnimState::Idle => 0,
-            PlayerAnimState::Run => ((time.time_since_startup().as_millis() / 100) % 5 + 1)
-                .try_into()
-                .expect("Spritesheet index should always fit into usize!"),
-        }));
+    sprite.index = match player.anim_state {
+        PlayerAnimState::Idle => 0,
+        PlayerAnimState::Run => ((time.time_since_startup().as_millis() / 100) % 5 + 1)
+            .try_into()
+            .expect("Spritesheet index should always fit into usize!"),
+    };
 }
 
 fn load_graphics(
