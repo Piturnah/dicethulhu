@@ -1,0 +1,8 @@
+NAME	- WIDTH X HEIGHT
+Enemy1	- 21 x 16
+Enemy2	- 25 x 23
+Enemy3	- 25 x 23
+Enemy4	- 23 x 27
+Enemy5	- 57 x 46
+Enemy5F	- 12 x 14
+Enemy6	- 32 x 41
