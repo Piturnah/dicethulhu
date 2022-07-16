@@ -2,13 +2,19 @@ use bevy::prelude::*;
 use bevy_inspector_egui::Inspectable;
 use bevy_rapier2d::prelude::*;
 
+mod clouds;
 mod debug;
 
+use clouds::CloudsPlugin;
 use debug::DebugPlugin;
 
 const RESOLUTION: f32 = 16.0 / 9.0;
 
-struct PlayerSheet(pub Handle<TextureAtlas>);
+struct PlayerSheet(Handle<TextureAtlas>);
+struct ArenaSprite(Handle<Image>);
+struct SkyboxSprite(Handle<Image>);
+struct CloudsSprite(Handle<Image>);
+struct DicethulhuSprite(Handle<Image>);
 
 #[derive(Inspectable)]
 enum PlayerAnimState {
@@ -93,6 +99,10 @@ fn spawn_player(mut commands: Commands, sprite_sheet: Res<PlayerSheet>) {
         .spawn_bundle(SpriteSheetBundle {
             sprite,
             texture_atlas: sprite_sheet.0.clone(),
+            transform: Transform {
+                translation: Vec3::new(0.0, 0.0, 100.0),
+                ..Default::default()
+            },
             ..Default::default()
         })
         .insert(RigidBody::Dynamic)
@@ -220,15 +230,24 @@ fn load_graphics(
 
     let atlas_handle = texture_atlases.add(atlas);
 
-    commands.insert_resource(PlayerSheet(atlas_handle))
+    commands.insert_resource(PlayerSheet(atlas_handle));
+
+    let image_handle = assets.load("Arena.png");
+    commands.insert_resource(ArenaSprite(image_handle));
+    let image_handle = assets.load("Skybox.png");
+    commands.insert_resource(SkyboxSprite(image_handle));
+    let image_handle = assets.load("SkyboxClouds.png");
+    commands.insert_resource(CloudsSprite(image_handle));
+    let image_handle = assets.load("DicethulhuTest.png");
+    commands.insert_resource(DicethulhuSprite(image_handle));
 }
 
 fn setup_physics(mut commands: Commands) {
     commands
         .spawn()
         .insert(Collider::cuboid(500.0, 50.0))
-        .insert_bundle(TransformBundle::from(Transform::from_xyz(0.0, -100.0, 0.0)))
-        .insert(Name::from("Ground"));
+        .insert_bundle(TransformBundle::from(Transform::from_xyz(0.0, -123.0, 0.0)))
+        .insert(Name::from("Ground Collider"));
 }
 
 fn spawn_camera(mut commands: Commands) {
@@ -236,6 +255,42 @@ fn spawn_camera(mut commands: Commands) {
     camera.orthographic_projection.scale = 0.2;
 
     commands.spawn_bundle(camera);
+}
+
+fn init_scene(
+    mut commands: Commands,
+    arena_texture: Res<ArenaSprite>,
+    skybox_texture: Res<SkyboxSprite>,
+    dicethulhu_texture: Res<DicethulhuSprite>,
+) {
+    commands
+        .spawn_bundle(SpriteBundle {
+            texture: arena_texture.0.clone(),
+            transform: Transform {
+                translation: Vec3::new(0.0, 0.0, 50.0),
+                ..Default::default()
+            },
+            ..Default::default()
+        })
+        .insert(Name::from("Arena"));
+
+    commands
+        .spawn_bundle(SpriteBundle {
+            texture: skybox_texture.0.clone(),
+            ..Default::default()
+        })
+        .insert(Name::from("Skybox"));
+
+    commands
+        .spawn_bundle(SpriteBundle {
+            texture: dicethulhu_texture.0.clone(),
+            transform: Transform {
+                translation: Vec3::new(0.0, 0.0, 40.0),
+                ..Default::default()
+            },
+            ..Default::default()
+        })
+        .insert(Name::from("Dicethulhu"));
 }
 
 fn main() {
@@ -256,11 +311,12 @@ fn main() {
         })
         .add_plugin(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(450.0))
         .add_plugin(DebugPlugin)
+        .add_plugin(CloudsPlugin)
         .add_startup_system_to_stage(StartupStage::PreStartup, load_graphics)
         .add_startup_system(spawn_camera)
         .add_startup_system(spawn_player)
+        .add_startup_system(init_scene)
         .add_startup_system(setup_physics)
-        .add_system(bevy::input::system::exit_on_esc_system)
         .add_system(player_movement)
         .add_system(animate_player)
         .add_system(spawn_ground_sensor)
