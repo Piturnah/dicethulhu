@@ -10,6 +10,9 @@ const RESOLUTION: f32 = 16.0 / 9.0;
 
 struct PlayerSheet(Handle<TextureAtlas>);
 struct ArenaSprite(Handle<Image>);
+struct SkyboxSprite(Handle<Image>);
+struct CloudsSprite(Handle<Image>);
+struct DicethulhuSprite(Handle<Image>);
 
 #[derive(Inspectable)]
 enum PlayerAnimState {
@@ -94,6 +97,10 @@ fn spawn_player(mut commands: Commands, sprite_sheet: Res<PlayerSheet>) {
         .spawn_bundle(SpriteSheetBundle {
             sprite,
             texture_atlas: sprite_sheet.0.clone(),
+            transform: Transform {
+                translation: Vec3::new(0.0, 0.0, 100.0),
+                ..Default::default()
+            },
             ..Default::default()
         })
         .insert(RigidBody::Dynamic)
@@ -225,6 +232,12 @@ fn load_graphics(
 
     let image_handle = assets.load("Arena.png");
     commands.insert_resource(ArenaSprite(image_handle));
+    let image_handle = assets.load("Skybox.png");
+    commands.insert_resource(SkyboxSprite(image_handle));
+    let image_handle = assets.load("SkyboxClouds.png");
+    commands.insert_resource(CloudsSprite(image_handle));
+    let image_handle = assets.load("DicethulhuTest.png");
+    commands.insert_resource(DicethulhuSprite(image_handle));
 }
 
 fn setup_physics(mut commands: Commands) {
@@ -242,12 +255,52 @@ fn spawn_camera(mut commands: Commands) {
     commands.spawn_bundle(camera);
 }
 
-fn spawn_arena(mut commands: Commands, texture: Res<ArenaSprite>) {
-    commands.spawn_bundle(SpriteBundle {
-	texture: texture.0.clone(),
-	..Default::default()
-    })
-	.insert(Name::from("Arena"));
+fn init_scene(
+    mut commands: Commands,
+    arena_texture: Res<ArenaSprite>,
+    skybox_texture: Res<SkyboxSprite>,
+    clouds_texture: Res<CloudsSprite>,
+    dicethulhu_texture: Res<DicethulhuSprite>,
+) {
+    commands
+        .spawn_bundle(SpriteBundle {
+            texture: arena_texture.0.clone(),
+            transform: Transform {
+                translation: Vec3::new(0.0, 0.0, 50.0),
+                ..Default::default()
+            },
+            ..Default::default()
+        })
+        .insert(Name::from("Arena"));
+
+    commands
+        .spawn_bundle(SpriteBundle {
+            texture: skybox_texture.0.clone(),
+            ..Default::default()
+        })
+        .insert(Name::from("Skybox"));
+
+    commands
+        .spawn_bundle(SpriteBundle {
+            texture: clouds_texture.0.clone(),
+            transform: Transform {
+                translation: Vec3::new(0.0, 0.0, 30.0),
+                ..Default::default()
+            },
+            ..Default::default()
+        })
+        .insert(Name::from("Clouds"));
+
+    commands
+        .spawn_bundle(SpriteBundle {
+            texture: dicethulhu_texture.0.clone(),
+            transform: Transform {
+                translation: Vec3::new(0.0, 0.0, 40.0),
+                ..Default::default()
+            },
+            ..Default::default()
+        })
+        .insert(Name::from("Dicethulhu"));
 }
 
 fn main() {
@@ -271,7 +324,7 @@ fn main() {
         .add_startup_system_to_stage(StartupStage::PreStartup, load_graphics)
         .add_startup_system(spawn_camera)
         .add_startup_system(spawn_player)
-        .add_startup_system(spawn_arena)
+        .add_startup_system(init_scene)
         .add_startup_system(setup_physics)
         .add_system(bevy::input::system::exit_on_esc_system)
         .add_system(player_movement)
