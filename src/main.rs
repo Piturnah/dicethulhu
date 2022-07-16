@@ -20,6 +20,7 @@ enum PlayerAnimState {
 #[derive(Component, Inspectable)]
 struct Player {
     speed: f32,
+    jump_force: f32,
     anim_state: PlayerAnimState,
 }
 
@@ -40,11 +41,13 @@ fn player_movement(
         &mut TextureAtlasSprite,
         &mut Velocity,
         &GroundDetection,
+        &mut GravityScale,
     )>,
     keyboard: Res<Input<KeyCode>>,
     time: Res<Time>,
 ) {
-    let (mut player, mut transform, mut sprite, mut vel, ground_sensor) = player_query.single_mut();
+    let (mut player, mut transform, mut sprite, mut vel, ground_sensor, mut gravity) =
+        player_query.single_mut();
 
     let right = keyboard.pressed(KeyCode::D) || keyboard.pressed(KeyCode::Right);
     let left = keyboard.pressed(KeyCode::A) || keyboard.pressed(KeyCode::Left);
@@ -70,8 +73,14 @@ fn player_movement(
 
     if !ground_sensor.grounded {
         player.anim_state = PlayerAnimState::Jump;
+
+        if vel.linvel[1] < 0.0 {
+            *gravity = GravityScale(1.5);
+        }
     } else if up {
-        vel.linvel = Vec2::new(0.0, 200.0);
+        vel.linvel = Vec2::new(0.0, player.jump_force);
+    } else {
+        *gravity = GravityScale(1.0);
     }
 
     transform.translation += Vec3::new(delta_x, 0.0, 0.0);
@@ -88,9 +97,11 @@ fn spawn_player(mut commands: Commands, sprite_sheet: Res<PlayerSheet>) {
         })
         .insert(RigidBody::Dynamic)
         .insert(Velocity::default())
+        .insert(GravityScale::default())
         .insert(Collider::cuboid(8.0, 10.5))
         .insert(Player {
             speed: 100.0,
+            jump_force: 200.0,
             anim_state: PlayerAnimState::Idle,
         })
         .insert(GroundDetection::default())
