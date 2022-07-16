@@ -3,11 +3,13 @@ use bevy_rapier2d::prelude::*;
 
 mod clouds;
 mod debug;
+mod enemy;
 mod physics;
 mod player;
 
 use clouds::CloudsPlugin;
 use debug::DebugPlugin;
+use enemy::EnemyPlugin;
 use physics::PhysicsPlugin;
 use player::PlayerPlugin;
 
@@ -17,7 +19,6 @@ struct PlayerSheet(Handle<TextureAtlas>);
 struct ArenaSprite(Handle<Image>);
 struct SkyboxSprite(Handle<Image>);
 struct CloudsSprite(Handle<Image>);
-struct DicethulhuSheet(Handle<TextureAtlas>);
 struct BulletSprite(Handle<Image>);
 struct GunSheet(Handle<TextureAtlas>);
 
@@ -37,17 +38,6 @@ fn load_graphics(
         TextureAtlas::from_grid_with_padding(image, Vec2::new(23.0, 9.0), 2, 1, Vec2::splat(2.0));
     let atlas_handle = texture_atlases.add(atlas);
     commands.insert_resource(GunSheet(atlas_handle));
-
-    let image = assets.load("Dicethulhu.png");
-    let atlas = TextureAtlas::from_grid_with_padding(
-        image,
-        Vec2::new(320.0, 180.0),
-        16,
-        1,
-        Vec2::splat(2.0),
-    );
-    let atlas_handle = texture_atlases.add(atlas);
-    commands.insert_resource(DicethulhuSheet(atlas_handle));
 
     let image_handle = assets.load("Arena.png");
     commands.insert_resource(ArenaSprite(image_handle));
@@ -70,7 +60,6 @@ fn init_scene(
     mut commands: Commands,
     arena_texture: Res<ArenaSprite>,
     skybox_texture: Res<SkyboxSprite>,
-    dicethulhu_texture: Res<DicethulhuSheet>,
 ) {
     commands
         .spawn_bundle(SpriteBundle {
@@ -89,18 +78,6 @@ fn init_scene(
             ..Default::default()
         })
         .insert(Name::from("Skybox"));
-
-    commands
-        .spawn_bundle(SpriteSheetBundle {
-            sprite: TextureAtlasSprite::new(0),
-            texture_atlas: dicethulhu_texture.0.clone(),
-            transform: Transform {
-                translation: Vec3::new(0.0, 0.0, 40.0),
-                ..Default::default()
-            },
-            ..Default::default()
-        })
-        .insert(Name::from("Dicethulhu"));
 }
 
 fn main() {
@@ -124,6 +101,7 @@ fn main() {
         .add_plugin(CloudsPlugin)
         .add_plugin(PlayerPlugin)
         .add_plugin(PhysicsPlugin)
+        .add_plugin(EnemyPlugin)
         .add_startup_system_to_stage(StartupStage::PreStartup, load_graphics)
         .add_startup_system(spawn_camera)
         .add_startup_system(init_scene)
