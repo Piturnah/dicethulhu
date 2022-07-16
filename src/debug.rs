@@ -1,4 +1,7 @@
-use bevy::{diagnostic::{LogDiagnosticsPlugin, FrameTimeDiagnosticsPlugin}, prelude::*};
+use bevy::{
+    diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
+    prelude::*,
+};
 use bevy_inspector_egui::{RegisterInspectable, WorldInspectorPlugin};
 use bevy_rapier2d::prelude::RapierDebugRenderPlugin;
 
