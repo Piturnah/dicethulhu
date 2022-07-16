@@ -12,7 +12,8 @@ impl Plugin for DebugPlugin {
             app.add_plugin(RapierDebugRenderPlugin::default())
                 .add_plugin(WorldInspectorPlugin::new())
                 .register_inspectable::<Player>()
-                .register_inspectable::<GroundDetection>();
+                .register_inspectable::<GroundDetection>()
+                .add_system(bevy::input::system::exit_on_esc_system);
         }
     }
 }

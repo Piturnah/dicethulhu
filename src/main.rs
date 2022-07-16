@@ -2,8 +2,10 @@ use bevy::prelude::*;
 use bevy_inspector_egui::Inspectable;
 use bevy_rapier2d::prelude::*;
 
+mod clouds;
 mod debug;
 
+use clouds::CloudsPlugin;
 use debug::DebugPlugin;
 
 const RESOLUTION: f32 = 16.0 / 9.0;
@@ -259,7 +261,6 @@ fn init_scene(
     mut commands: Commands,
     arena_texture: Res<ArenaSprite>,
     skybox_texture: Res<SkyboxSprite>,
-    clouds_texture: Res<CloudsSprite>,
     dicethulhu_texture: Res<DicethulhuSprite>,
 ) {
     commands
@@ -279,17 +280,6 @@ fn init_scene(
             ..Default::default()
         })
         .insert(Name::from("Skybox"));
-
-    commands
-        .spawn_bundle(SpriteBundle {
-            texture: clouds_texture.0.clone(),
-            transform: Transform {
-                translation: Vec3::new(0.0, 0.0, 30.0),
-                ..Default::default()
-            },
-            ..Default::default()
-        })
-        .insert(Name::from("Clouds"));
 
     commands
         .spawn_bundle(SpriteBundle {
@@ -321,12 +311,12 @@ fn main() {
         })
         .add_plugin(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(450.0))
         .add_plugin(DebugPlugin)
+        .add_plugin(CloudsPlugin)
         .add_startup_system_to_stage(StartupStage::PreStartup, load_graphics)
         .add_startup_system(spawn_camera)
         .add_startup_system(spawn_player)
         .add_startup_system(init_scene)
         .add_startup_system(setup_physics)
-        .add_system(bevy::input::system::exit_on_esc_system)
         .add_system(player_movement)
         .add_system(animate_player)
         .add_system(spawn_ground_sensor)
