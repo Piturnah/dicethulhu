@@ -34,7 +34,7 @@ fn load_graphics(
 
     let image = assets.load("Gun.png");
     let atlas =
-        TextureAtlas::from_grid_with_padding(image, Vec2::new(20.0, 9.0), 2, 1, Vec2::splat(2.0));
+        TextureAtlas::from_grid_with_padding(image, Vec2::new(23.0, 9.0), 2, 1, Vec2::splat(2.0));
     let atlas_handle = texture_atlases.add(atlas);
     commands.insert_resource(GunSheet(atlas_handle));
 
