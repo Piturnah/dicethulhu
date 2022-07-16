@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use bevy_inspector_egui::{RegisterInspectable, WorldInspectorPlugin};
 use bevy_rapier2d::prelude::RapierDebugRenderPlugin;
 
-use crate::Player;
+use crate::{GroundDetection, Player};
 
 pub struct DebugPlugin;
 
@@ -11,7 +11,8 @@ impl Plugin for DebugPlugin {
         if cfg!(debug_assertions) {
             app.add_plugin(RapierDebugRenderPlugin::default())
                 .add_plugin(WorldInspectorPlugin::new())
-                .register_inspectable::<Player>();
+                .register_inspectable::<Player>()
+                .register_inspectable::<GroundDetection>();
         }
     }
 }
