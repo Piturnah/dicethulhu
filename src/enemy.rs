@@ -48,7 +48,7 @@ fn spawn_dicethulhu(mut commands: Commands, sprite_sheet: Res<DicethulhuSheet>) 
 
 fn animate_enemy_one(mut query: Query<&mut TextureAtlasSprite, With<EnemyOne>>, time: Res<Time>) {
     let mut enemy_sprite = query.single_mut();
-    enemy_sprite.index = ((time.time_since_startup().as_millis() / 200) % 7)
+    enemy_sprite.index = ((time.time_since_startup().as_millis() / 100) % 7)
         .try_into()
         .expect("Should always fit into u128");
 }
