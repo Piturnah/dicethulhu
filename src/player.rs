@@ -11,7 +11,6 @@ pub struct PlayerPlugin;
 const PLAYER_SPEED: f32 = 100.0;
 const GUN_COOLDOWN_MS: u64 = 100;
 const GUN_TRAVEL_SPEED: f32 = 300.0;
-const LASER_DESPAWN_SECS: f32 = 1.0;
 
 #[derive(Inspectable)]
 enum PlayerAnimState {
@@ -38,7 +37,6 @@ pub struct GunNozzle;
 #[derive(Component)]
 pub struct Laser {
     direction: Dir,
-    despawn_time: Timer,
 }
 
 enum Dir {
@@ -59,18 +57,17 @@ impl Plugin for PlayerPlugin {
 
 fn bullet_travel(
     mut commands: Commands,
-    mut query: Query<(Entity, &mut Transform, &mut Laser)>,
+    mut query: Query<(Entity, &mut Transform, &Laser)>,
     time: Res<Time>,
 ) {
-    for (id, mut transform, mut laser) in query.iter_mut() {
+    for (id, mut transform, laser) in query.iter_mut() {
         transform.translation.x += time.delta_seconds()
             * match laser.direction {
                 Dir::Left => -GUN_TRAVEL_SPEED,
                 Dir::Right => GUN_TRAVEL_SPEED,
             };
 
-        laser.despawn_time.tick(time.delta());
-        if laser.despawn_time.just_finished() {
+        if transform.translation.x.abs() > 180.0 {
             commands.entity(id).despawn_recursive();
         }
     }
@@ -106,7 +103,6 @@ fn shoot_gun(
                     true => Dir::Left,
                     false => Dir::Right,
                 },
-                despawn_time: Timer::from_seconds(LASER_DESPAWN_SECS, false),
             });
     }
 }
