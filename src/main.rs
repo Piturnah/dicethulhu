@@ -14,11 +14,13 @@ struct PlayerSheet(pub Handle<TextureAtlas>);
 enum PlayerAnimState {
     Idle,
     Run,
+    Jump,
 }
 
 #[derive(Component, Inspectable)]
 struct Player {
     speed: f32,
+    jump_force: f32,
     anim_state: PlayerAnimState,
 }
 
@@ -37,12 +39,15 @@ fn player_movement(
         &mut Player,
         &mut Transform,
         &mut TextureAtlasSprite,
-        &mut RigidBody,
+        &mut Velocity,
+        &GroundDetection,
+        &mut GravityScale,
     )>,
     keyboard: Res<Input<KeyCode>>,
     time: Res<Time>,
 ) {
-    let (mut player, mut transform, mut sprite, mut rb) = player_query.single_mut();
+    let (mut player, mut transform, mut sprite, mut vel, ground_sensor, mut gravity) =
+        player_query.single_mut();
 
     let right = keyboard.pressed(KeyCode::D) || keyboard.pressed(KeyCode::Right);
     let left = keyboard.pressed(KeyCode::A) || keyboard.pressed(KeyCode::Left);
@@ -66,8 +71,16 @@ fn player_movement(
         player.anim_state = PlayerAnimState::Idle;
     }
 
-    if up {
-        todo!();
+    if !ground_sensor.grounded {
+        player.anim_state = PlayerAnimState::Jump;
+
+        if vel.linvel[1] < 0.0 {
+            *gravity = GravityScale(1.5);
+        }
+    } else if up {
+        vel.linvel = Vec2::new(0.0, player.jump_force);
+    } else {
+        *gravity = GravityScale(1.0);
     }
 
     transform.translation += Vec3::new(delta_x, 0.0, 0.0);
@@ -83,9 +96,12 @@ fn spawn_player(mut commands: Commands, sprite_sheet: Res<PlayerSheet>) {
             ..Default::default()
         })
         .insert(RigidBody::Dynamic)
+        .insert(Velocity::default())
+        .insert(GravityScale::default())
         .insert(Collider::cuboid(8.0, 10.5))
         .insert(Player {
             speed: 100.0,
+            jump_force: 200.0,
             anim_state: PlayerAnimState::Idle,
         })
         .insert(GroundDetection::default())
@@ -172,14 +188,24 @@ fn spawn_ground_sensor(
     }
 }
 
-fn animate_player(mut player_query: Query<(&Player, &mut TextureAtlasSprite)>, time: Res<Time>) {
-    let (player, mut sprite) = player_query.single_mut();
+fn animate_player(
+    mut player_query: Query<(&Player, &mut TextureAtlasSprite, &Velocity)>,
+    time: Res<Time>,
+) {
+    let (player, mut sprite, velocity) = player_query.single_mut();
 
     sprite.index = match player.anim_state {
         PlayerAnimState::Idle => 0,
         PlayerAnimState::Run => ((time.time_since_startup().as_millis() / 100) % 5 + 1)
             .try_into()
             .expect("Spritesheet index should always fit into usize!"),
+        PlayerAnimState::Jump => {
+            if velocity.linvel[1] >= 0.0 {
+                6
+            } else {
+                7
+            }
+        }
     };
 }
 
@@ -190,7 +216,7 @@ fn load_graphics(
 ) {
     let image = assets.load("LittleGuy.png");
     let atlas =
-        TextureAtlas::from_grid_with_padding(image, Vec2::new(16.0, 21.0), 6, 1, Vec2::splat(2.0));
+        TextureAtlas::from_grid_with_padding(image, Vec2::new(16.0, 21.0), 6, 2, Vec2::splat(2.0));
 
     let atlas_handle = texture_atlases.add(atlas);
 
@@ -224,6 +250,10 @@ fn main() {
             ..Default::default()
         })
         .add_plugins(DefaultPlugins)
+        .insert_resource(RapierConfiguration {
+            gravity: Vec2::new(0.0, -500.0),
+            ..Default::default()
+        })
         .add_plugin(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(450.0))
         .add_plugin(DebugPlugin)
         .add_startup_system_to_stage(StartupStage::PreStartup, load_graphics)
