@@ -18,6 +18,8 @@ struct ArenaSprite(Handle<Image>);
 struct SkyboxSprite(Handle<Image>);
 struct CloudsSprite(Handle<Image>);
 struct DicethulhuSprite(Handle<Image>);
+struct BulletSprite(Handle<Image>);
+struct GunSheet(Handle<TextureAtlas>);
 
 fn load_graphics(
     mut commands: Commands,
@@ -27,10 +29,14 @@ fn load_graphics(
     let image = assets.load("LittleGuy.png");
     let atlas =
         TextureAtlas::from_grid_with_padding(image, Vec2::new(16.0, 21.0), 6, 2, Vec2::splat(2.0));
-
     let atlas_handle = texture_atlases.add(atlas);
-
     commands.insert_resource(PlayerSheet(atlas_handle));
+
+    let image = assets.load("Gun.png");
+    let atlas =
+        TextureAtlas::from_grid_with_padding(image, Vec2::new(20.0, 9.0), 2, 1, Vec2::splat(2.0));
+    let atlas_handle = texture_atlases.add(atlas);
+    commands.insert_resource(GunSheet(atlas_handle));
 
     let image_handle = assets.load("Arena.png");
     commands.insert_resource(ArenaSprite(image_handle));
@@ -40,6 +46,8 @@ fn load_graphics(
     commands.insert_resource(CloudsSprite(image_handle));
     let image_handle = assets.load("DicethulhuTest.png");
     commands.insert_resource(DicethulhuSprite(image_handle));
+    let image_handle = assets.load("Laser.png");
+    commands.insert_resource(BulletSprite(image_handle));
 }
 
 fn spawn_camera(mut commands: Commands) {

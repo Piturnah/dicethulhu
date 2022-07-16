@@ -1,11 +1,17 @@
 use bevy::prelude::*;
 use bevy_inspector_egui::Inspectable;
 use bevy_rapier2d::prelude::*;
+use std::time::Duration;
 
 use crate::physics::GroundDetection;
-use crate::PlayerSheet;
+use crate::{BulletSprite, GunSheet, PlayerSheet};
 
 pub struct PlayerPlugin;
+
+const PLAYER_SPEED: f32 = 100.0;
+const GUN_COOLDOWN_MS: u64 = 100;
+const GUN_TRAVEL_SPEED: f32 = 300.0;
+const LASER_DESPAWN_SECS: f32 = 1.0;
 
 #[derive(Inspectable)]
 enum PlayerAnimState {
@@ -21,18 +27,110 @@ pub struct Player {
     anim_state: PlayerAnimState,
 }
 
+#[derive(Component)]
+pub struct Gun {
+    timer: Timer,
+}
+
+#[derive(Component)]
+pub struct GunNozzle;
+
+#[derive(Component)]
+pub struct Laser {
+    direction: Dir,
+    despawn_time: Timer,
+}
+
+enum Dir {
+    Left,
+    Right,
+}
+
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.add_startup_system(spawn_player)
             .add_system(animate_player)
-            .add_system(player_movement);
+            .add_system(player_movement)
+            .add_system(gun_position)
+            .add_system(shoot_gun)
+            .add_system(bullet_travel);
     }
 }
 
-fn spawn_player(mut commands: Commands, sprite_sheet: Res<PlayerSheet>) {
+fn bullet_travel(
+    mut commands: Commands,
+    mut query: Query<(Entity, &mut Transform, &mut Laser)>,
+    time: Res<Time>,
+) {
+    for (id, mut transform, mut laser) in query.iter_mut() {
+        transform.translation.x += time.delta_seconds()
+            * match laser.direction {
+                Dir::Left => -GUN_TRAVEL_SPEED,
+                Dir::Right => GUN_TRAVEL_SPEED,
+            };
+
+        laser.despawn_time.tick(time.delta());
+        if laser.despawn_time.just_finished() {
+            commands.entity(id).despawn_recursive();
+        }
+    }
+}
+
+fn shoot_gun(
+    mut commands: Commands,
+    keyboard: Res<Input<KeyCode>>,
+    mut query: Query<(&mut Gun, &mut TextureAtlasSprite, &GlobalTransform)>,
+    time: Res<Time>,
+    laser_sprite: Res<BulletSprite>,
+) {
+    let (mut gun, mut gun_sprite, gun_transform) = query.single_mut();
+
+    gun_sprite.index = 0;
+
+    gun.timer.tick(time.delta());
+
+    if gun.timer.just_finished() && keyboard.pressed(KeyCode::Space) {
+        gun_sprite.index = 1;
+
+        commands
+            .spawn_bundle(SpriteBundle {
+                texture: laser_sprite.0.clone(),
+                transform: Transform {
+                    translation: gun_transform.translation + Vec3::new(0.0, 1.0, -1.0),
+                    ..Default::default()
+                },
+                ..Default::default()
+            })
+            .insert(Laser {
+                direction: match gun_sprite.flip_x {
+                    true => Dir::Left,
+                    false => Dir::Right,
+                },
+                despawn_time: Timer::from_seconds(LASER_DESPAWN_SECS, false),
+            });
+    }
+}
+
+fn gun_position(
+    mut gun_query: Query<(&mut Transform, &mut TextureAtlasSprite), With<Gun>>,
+    player_query: Query<&TextureAtlasSprite, (With<Player>, Without<Gun>)>,
+) {
+    let (mut gun_transform, mut gun_sprite) = gun_query.single_mut();
+    let player_sprite = player_query.single();
+
+    if player_sprite.flip_x {
+        gun_transform.translation.x = -7.5;
+    } else {
+        gun_transform.translation.x = 7.5;
+    }
+
+    gun_sprite.flip_x = player_sprite.flip_x;
+}
+
+fn spawn_player(mut commands: Commands, sprite_sheet: Res<PlayerSheet>, gun_sheet: Res<GunSheet>) {
     let sprite = TextureAtlasSprite::new(0);
 
-    commands
+    let player = commands
         .spawn_bundle(SpriteSheetBundle {
             sprite,
             texture_atlas: sprite_sheet.0.clone(),
@@ -47,12 +145,43 @@ fn spawn_player(mut commands: Commands, sprite_sheet: Res<PlayerSheet>) {
         .insert(GravityScale::default())
         .insert(Collider::cuboid(8.0, 10.5))
         .insert(Player {
-            speed: 100.0,
+            speed: PLAYER_SPEED,
             jump_force: 200.0,
             anim_state: PlayerAnimState::Idle,
         })
         .insert(GroundDetection::default())
-        .insert(Name::new("Player"));
+        .insert(Name::new("Player"))
+        .id();
+
+    let gun = commands
+        .spawn_bundle(SpriteSheetBundle {
+            sprite: TextureAtlasSprite::new(0),
+            texture_atlas: gun_sheet.0.clone(),
+            transform: Transform {
+                translation: Vec3::new(7.5, -4.5, 10.0),
+                ..Default::default()
+            },
+            ..Default::default()
+        })
+        .insert(Gun {
+            timer: Timer::new(Duration::from_millis(GUN_COOLDOWN_MS), true),
+        })
+        .insert(Name::from("Gun"))
+        .id();
+
+    let gun_nozzle = commands
+        .spawn()
+        .insert(GlobalTransform::default())
+        .insert(Transform {
+            translation: Vec3::new(5.0, 0.0, 0.0),
+            ..Default::default()
+        })
+        .insert(GunNozzle)
+        .insert(Name::from("Gun Nozzle"))
+        .id();
+
+    commands.entity(gun).add_child(gun_nozzle);
+    commands.entity(player).add_child(gun);
 }
 
 fn player_movement(
@@ -72,9 +201,7 @@ fn player_movement(
 
     let right = keyboard.pressed(KeyCode::D) || keyboard.pressed(KeyCode::Right);
     let left = keyboard.pressed(KeyCode::A) || keyboard.pressed(KeyCode::Left);
-    let up = keyboard.pressed(KeyCode::W)
-        || keyboard.pressed(KeyCode::Up)
-        || keyboard.pressed(KeyCode::Space);
+    let up = keyboard.pressed(KeyCode::W) || keyboard.pressed(KeyCode::Up);
 
     let mut delta_x = 0.0;
     if right {
