@@ -8,7 +8,8 @@ use debug::DebugPlugin;
 
 const RESOLUTION: f32 = 16.0 / 9.0;
 
-struct PlayerSheet(pub Handle<TextureAtlas>);
+struct PlayerSheet(Handle<TextureAtlas>);
+struct ArenaSprite(Handle<Image>);
 
 #[derive(Inspectable)]
 enum PlayerAnimState {
@@ -220,15 +221,18 @@ fn load_graphics(
 
     let atlas_handle = texture_atlases.add(atlas);
 
-    commands.insert_resource(PlayerSheet(atlas_handle))
+    commands.insert_resource(PlayerSheet(atlas_handle));
+
+    let image_handle = assets.load("Arena.png");
+    commands.insert_resource(ArenaSprite(image_handle));
 }
 
 fn setup_physics(mut commands: Commands) {
     commands
         .spawn()
         .insert(Collider::cuboid(500.0, 50.0))
-        .insert_bundle(TransformBundle::from(Transform::from_xyz(0.0, -100.0, 0.0)))
-        .insert(Name::from("Ground"));
+        .insert_bundle(TransformBundle::from(Transform::from_xyz(0.0, -123.0, 0.0)))
+        .insert(Name::from("Ground Collider"));
 }
 
 fn spawn_camera(mut commands: Commands) {
@@ -236,6 +240,14 @@ fn spawn_camera(mut commands: Commands) {
     camera.orthographic_projection.scale = 0.2;
 
     commands.spawn_bundle(camera);
+}
+
+fn spawn_arena(mut commands: Commands, texture: Res<ArenaSprite>) {
+    commands.spawn_bundle(SpriteBundle {
+	texture: texture.0.clone(),
+	..Default::default()
+    })
+	.insert(Name::from("Arena"));
 }
 
 fn main() {
@@ -259,6 +271,7 @@ fn main() {
         .add_startup_system_to_stage(StartupStage::PreStartup, load_graphics)
         .add_startup_system(spawn_camera)
         .add_startup_system(spawn_player)
+        .add_startup_system(spawn_arena)
         .add_startup_system(setup_physics)
         .add_system(bevy::input::system::exit_on_esc_system)
         .add_system(player_movement)
