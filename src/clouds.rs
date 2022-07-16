@@ -20,9 +20,9 @@ impl Plugin for CloudsPlugin {
 fn scroll_clouds(mut q: Query<&mut Transform, With<Clouds>>, time: Res<Time>) {
     for mut clouds in q.iter_mut() {
         clouds.translation.x -= SPEED * time.delta_seconds();
-	if clouds.translation.x < -WIDTH {
-	    clouds.translation.x = -clouds.translation.x;
-	}
+        if clouds.translation.x < -WIDTH {
+            clouds.translation.x = -clouds.translation.x;
+        }
     }
 }
 

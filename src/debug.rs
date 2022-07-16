@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use bevy_inspector_egui::{RegisterInspectable, WorldInspectorPlugin};
 use bevy_rapier2d::prelude::RapierDebugRenderPlugin;
 
-use crate::{GroundDetection, Player};
+use crate::{physics::GroundDetection, player::Player};
 
 pub struct DebugPlugin;
 
