@@ -6,3 +6,4 @@ Enemy4	- 23 x 27
 Enemy5	- 57 x 46
 Enemy5F	- 12 x 14
 Enemy6	- 32 x 41
+Dicethulhu - 320 x 180
