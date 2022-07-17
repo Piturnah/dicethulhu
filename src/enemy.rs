@@ -6,6 +6,7 @@ use std::time::Duration;
 use crate::{
     health::{Damaged, Health, Invuln},
     player::{Laser, Player},
+    GameState,
 };
 
 const ENEMY_ONE_HEALTH: u8 = 5;
@@ -19,6 +20,7 @@ pub struct EnemyPlugin;
 struct DicethulhuSheet(Handle<TextureAtlas>);
 struct EnemyOneSheet(Handle<TextureAtlas>);
 struct EnemyOneBeamSprite(Handle<Image>);
+//struct DiceRollSheet(Handle<Image>)
 
 #[derive(Component)]
 pub struct FacePlayer;
@@ -56,13 +58,16 @@ impl Plugin for EnemyPlugin {
     fn build(&self, app: &mut App) {
         app.add_startup_system_to_stage(StartupStage::PreStartup, load_graphics)
             .add_startup_system(spawn_dicethulhu)
-            .add_startup_system(spawn_enemy_one)
-            .add_system(face_player)
-            .add_system(check_for_laser)
             .add_system(animate_dicethulhu)
-            .add_system(animate_enemy_one)
-            .add_system(destroy_beam)
-            .add_system(enemy_one_movement);
+            .add_system_set(SystemSet::on_enter(GameState::Play).with_system(spawn_enemy_one))
+            .add_system_set(
+                SystemSet::on_update(GameState::Play)
+                    .with_system(face_player)
+                    .with_system(check_for_laser)
+                    .with_system(animate_enemy_one)
+                    .with_system(destroy_beam)
+                    .with_system(enemy_one_movement),
+            );
     }
 }
 

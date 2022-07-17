@@ -26,6 +26,12 @@ struct SkyboxSprite(Handle<Image>);
 struct BulletSprite(Handle<Image>);
 struct GunSheet(Handle<TextureAtlas>);
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Copy)]
+pub enum GameState {
+    DiceRoll,
+    Play,
+}
+
 fn load_graphics(
     mut commands: Commands,
     assets: Res<AssetServer>,
@@ -116,6 +122,7 @@ fn main() {
     let height = 900.0;
 
     App::new()
+        .add_state(GameState::DiceRoll)
         .insert_resource(WindowDescriptor {
             width: height * RESOLUTION,
             height,

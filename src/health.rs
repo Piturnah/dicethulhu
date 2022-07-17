@@ -42,15 +42,15 @@ fn invuln(
         invuln.duration.tick(time.delta());
         invuln.flash_period.tick(time.delta());
 
-	// This is broken but ran out of time in jam
+        // This is broken but ran out of time in jam
         if invuln.flash_period.just_finished() {
-	    let alpha = sprite.color.a();
-	    sprite.color.set_a(match alpha {
-		0.1 => 0.0,
-		0.0 | 1.0 => 0.1,
-		_ => 1.0,
-	    });
-	}
+            let alpha = sprite.color.a();
+            sprite.color.set_a(match alpha {
+                0.1 => 0.0,
+                0.0 | 1.0 => 0.1,
+                _ => 1.0,
+            });
+        }
         if invuln.duration.just_finished() {
             sprite.color.set_a(1.0);
             commands.entity(id).remove::<Invuln>();

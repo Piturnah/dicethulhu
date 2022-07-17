@@ -6,7 +6,7 @@ use std::{f32::consts::PI, time::Duration};
 use crate::health::{Damaged, Health};
 use crate::physics::{Ground, GroundDetection};
 use crate::ui::UpdatedHealth;
-use crate::{BulletSprite, GunSheet, PlayerSheet};
+use crate::{BulletSprite, GameState, GunSheet, PlayerSheet};
 
 pub struct PlayerPlugin;
 
@@ -51,13 +51,15 @@ enum Dir {
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_startup_system(spawn_player)
-            .add_system(animate_player)
-            .add_system(player_movement)
-            .add_system(gun_position)
-            .add_system(shoot_gun)
-            .add_system(damage_from_beam)
-            .add_system(bullet_travel);
+        app.add_startup_system(spawn_player).add_system_set(
+            SystemSet::on_update(GameState::Play)
+                .with_system(animate_player)
+                .with_system(player_movement)
+                .with_system(gun_position)
+                .with_system(shoot_gun)
+                .with_system(damage_from_beam)
+                .with_system(bullet_travel),
+        );
     }
 }
 
