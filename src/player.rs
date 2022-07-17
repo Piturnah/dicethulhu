@@ -34,11 +34,12 @@ pub struct Gun {
 #[derive(Component)]
 pub struct GunNozzle;
 
-#[derive(Component)]
+#[derive(Component, Debug)]
 pub struct Laser {
     direction: Dir,
 }
 
+#[derive(Debug)]
 enum Dir {
     Left,
     Right,
@@ -98,6 +99,9 @@ fn shoot_gun(
                 },
                 ..Default::default()
             })
+            .insert(Collider::cuboid(5.5, 1.5))
+            .insert(Sensor)
+            .insert(ActiveEvents::COLLISION_EVENTS)
             .insert(Laser {
                 direction: match gun_sprite.flip_x {
                     true => Dir::Left,
