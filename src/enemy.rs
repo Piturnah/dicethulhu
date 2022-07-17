@@ -46,11 +46,27 @@ fn spawn_dicethulhu(mut commands: Commands, sprite_sheet: Res<DicethulhuSheet>) 
         .insert(Name::from("Dicethulhu"));
 }
 
-fn animate_enemy_one(mut query: Query<&mut TextureAtlasSprite, With<EnemyOne>>, time: Res<Time>) {
-    let mut enemy_sprite = query.single_mut();
-    enemy_sprite.index = ((time.time_since_startup().as_millis() / 100) % 7)
-        .try_into()
-        .expect("Should always fit into u128");
+fn animate_enemy_one(
+    mut query: Query<(&mut TextureAtlasSprite, &mut Transform), With<EnemyOne>>,
+    time: Res<Time>,
+) {
+    let (mut enemy_sprite, mut enemy_transform) = query.single_mut();
+
+    let frame = (time.time_since_startup().as_millis() / 100) % 7;
+    enemy_sprite.index = frame.try_into().expect("Should always fit into u128");
+
+    const TOTAL_DISPLACEMENT: f32 = 2.0;
+
+    let frame = (frame + 1) % 7;
+    let y_vel;
+
+    if frame >= 3 {
+        y_vel = -TOTAL_DISPLACEMENT / 4.0
+    } else {
+        y_vel = TOTAL_DISPLACEMENT / 3.0;
+    }
+
+    enemy_transform.translation.y += y_vel;
 }
 
 fn spawn_enemy_one(mut commands: Commands, sprite_sheet: Res<EnemyOneSheet>) {
