@@ -20,7 +20,9 @@ pub struct EnemyPlugin;
 struct DicethulhuSheet(Handle<TextureAtlas>);
 struct EnemyOneSheet(Handle<TextureAtlas>);
 struct EnemyOneBeamSprite(Handle<Image>);
-//struct DiceRollSheet(Handle<Image>)
+struct DiceRollSheet(Handle<Image>);
+
+struct EnemyCount(u8);
 
 #[derive(Component)]
 pub struct FacePlayer;
@@ -59,6 +61,7 @@ impl Plugin for EnemyPlugin {
         app.add_startup_system_to_stage(StartupStage::PreStartup, load_graphics)
             .add_startup_system(spawn_dicethulhu)
             .add_system(animate_dicethulhu)
+            .insert_resource(EnemyCount(5))
             .add_system_set(SystemSet::on_enter(GameState::Play).with_system(spawn_enemy_one))
             .add_system_set(
                 SystemSet::on_update(GameState::Play)
@@ -230,6 +233,8 @@ fn animate_enemy_one(
                 })
                 .insert(Collider::cuboid(167.0, 3.0))
                 .insert(Sensor)
+                .insert(ActiveCollisionTypes::default() | ActiveCollisionTypes::DYNAMIC_STATIC)
+                .insert(ActiveEvents::COLLISION_EVENTS)
                 .insert(Beam::default())
                 .insert(Name::from("Beam"))
                 .id();
@@ -240,9 +245,13 @@ fn animate_enemy_one(
     }
 }
 
-fn spawn_enemy_one(mut commands: Commands, sprite_sheet: Res<EnemyOneSheet>) {
+fn spawn_enemy_one(
+    mut commands: Commands,
+    sprite_sheet: Res<EnemyOneSheet>,
+    count: Res<EnemyCount>,
+) {
     let mut rng = thread_rng();
-    for _ in 0..5 {
+    for _ in 0..count.0 {
         commands
             .spawn_bundle(SpriteSheetBundle {
                 sprite: TextureAtlasSprite::new(0),
@@ -298,6 +307,12 @@ fn load_graphics(
         TextureAtlas::from_grid_with_padding(image, Vec2::new(21.0, 16.0), 7, 2, Vec2::splat(2.0));
     let atlas_handle = texture_atlases.add(atlas);
     commands.insert_resource(EnemyOneSheet(atlas_handle));
+
+    // let image = assets.load("Dice.png");
+    // let atlas =
+    //     TextureAtlas::from_grid_with_padding(image, Vec2::new(21.0, 16.0), 7, 2, Vec2::splat(2.0));
+    // let atlas_handle = texture_atlases.add(atlas);
+    // commands.insert_resource(EnemyOneSheet(atlas_handle));
 
     let image = assets.load("Enemy1Beam.png");
     commands.insert_resource(EnemyOneBeamSprite(image));

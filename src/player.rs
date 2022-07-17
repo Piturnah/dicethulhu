@@ -3,7 +3,8 @@ use bevy_inspector_egui::Inspectable;
 use bevy_rapier2d::prelude::*;
 use std::{f32::consts::PI, time::Duration};
 
-use crate::health::{Damaged, Health};
+use crate::enemy::Beam;
+use crate::health::{Damaged, Health, Invuln};
 use crate::physics::{Ground, GroundDetection};
 use crate::ui::UpdatedHealth;
 use crate::{BulletSprite, GameState, GunSheet, PlayerSheet};
@@ -64,16 +65,19 @@ impl Plugin for PlayerPlugin {
 }
 
 fn damage_from_beam(
-    //beam_query: Query<&Beam>,
-    //mut collisions: EventReader<CollisionEvent>
+    beam_query: Query<&Beam>,
+    mut collisions: EventReader<CollisionEvent>,
     mut commands: Commands,
-    mut keyboard: ResMut<Input<KeyCode>>,
-    player: Query<Entity, With<Player>>,
+    player: Query<Entity, (With<Player>, Without<Invuln>)>,
 ) {
-    if keyboard.just_pressed(KeyCode::T) {
-        keyboard.clear_just_pressed(KeyCode::T);
-        let player = player.single();
-        commands.entity(player).insert(Damaged);
+    for collision in collisions.iter() {
+        if let CollisionEvent::Started(a, b, _) = collision {
+            if player.get(*a).is_ok() && beam_query.get(*b).is_ok() {
+                commands.entity(*a).insert(Damaged);
+            } else if beam_query.get(*a).is_ok() && player.get(*b).is_ok() {
+                commands.entity(*b).insert(Damaged);
+            }
+        }
     }
 }
 
