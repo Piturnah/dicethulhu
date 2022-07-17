@@ -9,3 +9,4 @@ edition = "2021"
 bevy = { version = "0.7", features = ["dynamic"] }
 bevy_rapier2d = { version = "0.15", features = ["simd-stable", "debug-render"] }
 bevy-inspector-egui = "0.11"
+rand = "0.8"
