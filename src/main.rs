@@ -7,6 +7,7 @@ mod enemy;
 mod health;
 mod physics;
 mod player;
+mod ui;
 
 use clouds::CloudsPlugin;
 use debug::DebugPlugin;
@@ -14,6 +15,7 @@ use enemy::EnemyPlugin;
 use health::HealthPlugin;
 use physics::PhysicsPlugin;
 use player::PlayerPlugin;
+use ui::UiPlugin;
 
 const RESOLUTION: f32 = 16.0 / 9.0;
 const PIXEL_WIDTH: f32 = 320.0;
@@ -133,6 +135,7 @@ fn main() {
         .add_plugin(PhysicsPlugin)
         .add_plugin(EnemyPlugin)
         .add_plugin(UiPlugin)
+        .add_plugin(HealthPlugin)
         .add_startup_system_to_stage(StartupStage::PreStartup, load_graphics)
         .add_startup_system(spawn_camera)
         .add_startup_system(init_scene)

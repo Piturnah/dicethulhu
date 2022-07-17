@@ -3,8 +3,9 @@ use bevy_inspector_egui::Inspectable;
 use bevy_rapier2d::prelude::*;
 use std::{f32::consts::PI, time::Duration};
 
-use crate::health::Health;
+use crate::health::{Damaged, Health};
 use crate::physics::{Ground, GroundDetection};
+use crate::ui::UpdatedHealth;
 use crate::{BulletSprite, GunSheet, PlayerSheet};
 
 pub struct PlayerPlugin;
@@ -55,7 +56,22 @@ impl Plugin for PlayerPlugin {
             .add_system(player_movement)
             .add_system(gun_position)
             .add_system(shoot_gun)
+            .add_system(damage_from_beam)
             .add_system(bullet_travel);
+    }
+}
+
+fn damage_from_beam(
+    //beam_query: Query<&Beam>,
+    //mut collisions: EventReader<CollisionEvent>
+    mut commands: Commands,
+    mut keyboard: ResMut<Input<KeyCode>>,
+    player: Query<Entity, With<Player>>,
+) {
+    if keyboard.just_pressed(KeyCode::T) {
+        keyboard.clear_just_pressed(KeyCode::T);
+        let player = player.single();
+        commands.entity(player).insert(Damaged);
     }
 }
 
@@ -90,7 +106,7 @@ fn shoot_gun(
     time: Res<Time>,
     laser_sprite: Res<BulletSprite>,
 ) {
-    let holding_down = keyboard.pressed(KeyCode::Down) || keyboard.pressed(KeyCode::S);
+    let holding_down = keyboard.just_pressed(KeyCode::Down) || keyboard.pressed(KeyCode::S);
     let (mut gun, mut gun_sprite, mut gun_transform, gun_transform_global) = query.single_mut();
 
     gun_sprite.index = 0;
@@ -185,6 +201,7 @@ fn spawn_player(mut commands: Commands, sprite_sheet: Res<PlayerSheet>, gun_shee
             anim_state: PlayerAnimState::Idle,
         })
         .insert(Health { health: 5 })
+        .insert(UpdatedHealth)
         .insert(GroundDetection::default())
         .insert(Name::new("Player"))
         .id();

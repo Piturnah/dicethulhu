@@ -40,7 +40,7 @@ enum EnemyOneState {
     Attack,
 }
 #[derive(Component, Debug)]
-struct Beam {
+pub struct Beam {
     timer: Timer,
 }
 

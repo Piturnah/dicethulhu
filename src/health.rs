@@ -2,6 +2,8 @@ use bevy::prelude::*;
 use bevy_inspector_egui::Inspectable;
 use std::time::Duration;
 
+use crate::{player::Player, ui::UpdatedHealth};
+
 pub struct HealthPlugin;
 
 #[derive(Component, Debug)]
@@ -38,7 +40,8 @@ fn invuln(
 
 fn damaged(
     mut commands: Commands,
-    mut query: Query<(Entity, &mut Health), (Added<Damaged>, Without<Invuln>)>,
+    mut query: Query<(Entity, &mut Health), Added<Damaged>>,
+    player_query: Query<Entity, With<Player>>,
 ) {
     for (id, mut health) in query.iter_mut() {
         commands.entity(id).remove::<Damaged>().insert(Invuln {
@@ -47,6 +50,11 @@ fn damaged(
         health.health -= 1;
         if health.health == 0 {
             commands.entity(id).despawn_recursive();
+        }
+
+        // Very hacky, but running out of time
+        if let Ok(player) = player_query.get(id) {
+            commands.entity(player).insert(UpdatedHealth);
         }
     }
 }
