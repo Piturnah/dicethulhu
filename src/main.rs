@@ -19,7 +19,6 @@ const PIXEL_WIDTH: f32 = 320.0;
 struct PlayerSheet(Handle<TextureAtlas>);
 struct ArenaSprite(Handle<Image>);
 struct SkyboxSprite(Handle<Image>);
-struct CloudsSprite(Handle<Image>);
 struct BulletSprite(Handle<Image>);
 struct GunSheet(Handle<TextureAtlas>);
 
@@ -44,8 +43,6 @@ fn load_graphics(
     commands.insert_resource(ArenaSprite(image_handle));
     let image_handle = assets.load("Skybox.png");
     commands.insert_resource(SkyboxSprite(image_handle));
-    let image_handle = assets.load("SkyboxClouds.png");
-    commands.insert_resource(CloudsSprite(image_handle));
     let image_handle = assets.load("Laser.png");
     commands.insert_resource(BulletSprite(image_handle));
 }
