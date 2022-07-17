@@ -3,6 +3,7 @@ use bevy_inspector_egui::Inspectable;
 use bevy_rapier2d::prelude::*;
 use std::{f32::consts::PI, time::Duration};
 
+use crate::health::Health;
 use crate::physics::{Ground, GroundDetection};
 use crate::{BulletSprite, GunSheet, PlayerSheet};
 
@@ -183,6 +184,7 @@ fn spawn_player(mut commands: Commands, sprite_sheet: Res<PlayerSheet>, gun_shee
             jump_force: 200.0,
             anim_state: PlayerAnimState::Idle,
         })
+        .insert(Health { health: 5 })
         .insert(GroundDetection::default())
         .insert(Name::new("Player"))
         .id();

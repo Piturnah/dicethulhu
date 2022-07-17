@@ -4,12 +4,14 @@ use bevy_rapier2d::prelude::*;
 mod clouds;
 mod debug;
 mod enemy;
+mod health;
 mod physics;
 mod player;
 
 use clouds::CloudsPlugin;
 use debug::DebugPlugin;
 use enemy::EnemyPlugin;
+use health::HealthPlugin;
 use physics::PhysicsPlugin;
 use player::PlayerPlugin;
 
@@ -130,6 +132,7 @@ fn main() {
         .add_plugin(PlayerPlugin)
         .add_plugin(PhysicsPlugin)
         .add_plugin(EnemyPlugin)
+        .add_plugin(UiPlugin)
         .add_startup_system_to_stage(StartupStage::PreStartup, load_graphics)
         .add_startup_system(spawn_camera)
         .add_startup_system(init_scene)

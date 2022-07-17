@@ -3,7 +3,10 @@ use bevy_rapier2d::prelude::*;
 use rand::{thread_rng, Rng};
 use std::time::Duration;
 
-use crate::player::{Laser, Player};
+use crate::{
+    health::{Damaged, Health, Invuln},
+    player::{Laser, Player},
+};
 
 const ENEMY_ONE_HEALTH: u8 = 5;
 const ENEMY_ONE_COOLDOWN_SECS: f32 = 4.0;
@@ -21,16 +24,6 @@ struct EnemyOneBeamSprite(Handle<Image>);
 pub struct FacePlayer;
 #[derive(Component, Debug)]
 pub struct DiesToLaser;
-#[derive(Component, Debug)]
-pub struct Damaged;
-#[derive(Component, Debug)]
-pub struct Health {
-    health: u8,
-}
-#[derive(Component, Debug)]
-pub struct Invuln {
-    timer: Timer,
-}
 
 #[derive(Component)]
 pub struct Dicethulhu;
@@ -66,10 +59,8 @@ impl Plugin for EnemyPlugin {
             .add_startup_system(spawn_enemy_one)
             .add_system(face_player)
             .add_system(check_for_laser)
-            .add_system(damaged)
             .add_system(animate_dicethulhu)
             .add_system(animate_enemy_one)
-            .add_system(invuln)
             .add_system(destroy_beam)
             .add_system(enemy_one_movement);
     }
@@ -79,33 +70,6 @@ fn destroy_beam(mut commands: Commands, mut query: Query<(Entity, &mut Beam)>, t
     for (id, mut beam) in query.iter_mut() {
         beam.timer.tick(time.delta());
         if beam.timer.just_finished() {
-            commands.entity(id).despawn_recursive();
-        }
-    }
-}
-
-fn invuln(
-    mut commands: Commands,
-    mut query: Query<(Entity, &mut TextureAtlasSprite, &mut Invuln)>,
-    time: Res<Time>,
-) {
-    for (id, mut sprite, mut invuln) in query.iter_mut() {
-        sprite.color.set_a(0.1);
-        invuln.timer.tick(time.delta());
-        if invuln.timer.just_finished() {
-            sprite.color.set_a(1.0);
-            commands.entity(id).remove::<Invuln>();
-        }
-    }
-}
-
-fn damaged(mut commands: Commands, mut query: Query<(Entity, &mut Health), Added<Damaged>>) {
-    for (id, mut health) in query.iter_mut() {
-        commands.entity(id).remove::<Damaged>().insert(Invuln {
-            timer: Timer::new(Duration::from_millis(200), false),
-        });
-        health.health -= 1;
-        if health.health == 0 {
             commands.entity(id).despawn_recursive();
         }
     }
@@ -223,7 +187,7 @@ fn animate_enemy_one(
 
         let frame = match enemy_one.state {
             EnemyOneState::Idle | EnemyOneState::Move => (frame + 1) % 7,
-            EnemyOneState::Attack => (frame % 7 + 7).max(4),
+            EnemyOneState::Attack => (frame % 7 + 7).min(11),
         };
 
         enemy_sprite.index = frame.try_into().expect("Should always fit into u128");
