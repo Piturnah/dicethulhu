@@ -14,6 +14,7 @@ use physics::PhysicsPlugin;
 use player::PlayerPlugin;
 
 const RESOLUTION: f32 = 16.0 / 9.0;
+const PIXEL_WIDTH: f32 = 320.0;
 
 struct PlayerSheet(Handle<TextureAtlas>);
 struct ArenaSprite(Handle<Image>);
@@ -78,6 +79,36 @@ fn init_scene(
             ..Default::default()
         })
         .insert(Name::from("Skybox"));
+
+    commands
+        .spawn()
+        .insert(Collider::cuboid(1.0, PIXEL_WIDTH / RESOLUTION))
+        .insert(GlobalTransform::default())
+        .insert(Transform {
+            translation: Vec3::new(-(PIXEL_WIDTH / 2.0 + 1.0), 0.0, 0.0),
+            ..Default::default()
+        })
+        .insert(Name::from("Left wall"));
+
+    commands
+        .spawn()
+        .insert(Collider::cuboid(1.0, PIXEL_WIDTH / RESOLUTION))
+        .insert(GlobalTransform::default())
+        .insert(Transform {
+            translation: Vec3::new(PIXEL_WIDTH / 2.0 + 1.0, 0.0, 0.0),
+            ..Default::default()
+        })
+        .insert(Name::from("Right wall"));
+
+    commands
+        .spawn()
+        .insert(Collider::cuboid(PIXEL_WIDTH, 1.0))
+        .insert(GlobalTransform::default())
+        .insert(Transform {
+            translation: Vec3::new(0.0, PIXEL_WIDTH / (RESOLUTION * 2.0) + 1.0, 0.0),
+            ..Default::default()
+        })
+        .insert(Name::from("Ceiling"));
 }
 
 fn main() {
