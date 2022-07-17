@@ -1,12 +1,13 @@
 use bevy::prelude::*;
 
-use crate::{health::Health, player::Player};
+use crate::{health::Health, player::Player, GameState};
 
 pub struct UiPlugin;
 
 const HEART_WIDTH: f32 = 18.0;
 
 struct HeartsSheet(Handle<TextureAtlas>);
+struct AsciiSheet(Handle<TextureAtlas>);
 
 #[derive(Component)]
 pub struct UpdatedHealth;
@@ -16,7 +17,9 @@ struct UiHeart;
 impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
         app.add_startup_system_to_stage(StartupStage::PreStartup, load_graphics)
-            .add_system(render_player_health);
+            .add_system_set(
+                SystemSet::on_update(GameState::Play).with_system(render_player_health),
+            );
     }
 }
 
