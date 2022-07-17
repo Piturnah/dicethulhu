@@ -14,6 +14,9 @@ pub struct GroundSensor {
     pub ground_detection_entity: Entity,
 }
 
+#[derive(Component, Debug)]
+pub struct Ground;
+
 impl Plugin for PhysicsPlugin {
     fn build(&self, app: &mut App) {
         app.add_startup_system(spawn_ground_collider)
@@ -27,6 +30,7 @@ fn spawn_ground_collider(mut commands: Commands) {
         .spawn()
         .insert(Collider::cuboid(500.0, 50.0))
         .insert_bundle(TransformBundle::from(Transform::from_xyz(0.0, -123.0, 0.0)))
+        .insert(Ground)
         .insert(Name::from("Ground Collider"));
 }
 
@@ -34,47 +38,42 @@ fn detect_ground(
     sensors: Query<&GroundSensor>,
     mut collisions: EventReader<CollisionEvent>,
     mut entities: Query<&mut GroundDetection>,
+    grounds: Query<&Ground>,
 ) {
     for collision in collisions.iter() {
         match collision {
             CollisionEvent::Started(a, b, _) => {
                 // TODO: Inspect order for entities in `CollisionEvent`, as it always seems to be
                 // the sensor in `b`
-                match sensors.get(*b) {
-                    Ok(sensor) => match entities.get_mut(sensor.ground_detection_entity) {
-                        Ok(mut entity) => {
+                if let Ok(sensor) = sensors.get(*b) {
+                    if let Ok(mut entity) = entities.get_mut(sensor.ground_detection_entity) {
+                        if grounds.get(*a).is_ok() {
                             entity.grounded = true;
                         }
-                        Err(_) => {}
-                    },
-                    Err(_) => match sensors.get(*a) {
-                        Ok(sensor) => match entities.get_mut(sensor.ground_detection_entity) {
-                            Ok(mut entity) => {
-                                entity.grounded = true;
-                            }
-                            Err(_) => {}
-                        },
-                        Err(_) => {}
-                    },
+                    }
+                } else if let Ok(sensor) = sensors.get(*a) {
+                    if let Ok(mut entity) = entities.get_mut(sensor.ground_detection_entity) {
+                        if grounds.get(*b).is_ok() {
+                            entity.grounded = true;
+                        }
+                    }
                 }
             }
-            CollisionEvent::Stopped(a, b, _) => match sensors.get(*b) {
-                Ok(sensor) => match entities.get_mut(sensor.ground_detection_entity) {
-                    Ok(mut entity) => {
-                        entity.grounded = false;
-                    }
-                    Err(_) => {}
-                },
-                Err(_) => match sensors.get(*a) {
-                    Ok(sensor) => match entities.get_mut(sensor.ground_detection_entity) {
-                        Ok(mut entity) => {
+            CollisionEvent::Stopped(a, b, _) => {
+                if let Ok(sensor) = sensors.get(*b) {
+                    if let Ok(mut entity) = entities.get_mut(sensor.ground_detection_entity) {
+                        if grounds.get(*a).is_ok() {
                             entity.grounded = false;
                         }
-                        Err(_) => {}
-                    },
-                    Err(_) => {}
-                },
-            },
+                    } else if let Ok(sensor) = sensors.get(*a) {
+                        if let Ok(mut entity) = entities.get_mut(sensor.ground_detection_entity) {
+                            if grounds.get(*b).is_ok() {
+                                entity.grounded = false;
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

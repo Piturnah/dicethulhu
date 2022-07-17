@@ -1,9 +1,9 @@
 use bevy::prelude::*;
 use bevy_inspector_egui::Inspectable;
 use bevy_rapier2d::prelude::*;
-use std::time::Duration;
+use std::{f32::consts::PI, time::Duration};
 
-use crate::physics::GroundDetection;
+use crate::physics::{Ground, GroundDetection};
 use crate::{BulletSprite, GunSheet, PlayerSheet};
 
 pub struct PlayerPlugin;
@@ -11,6 +11,7 @@ pub struct PlayerPlugin;
 const PLAYER_SPEED: f32 = 100.0;
 const GUN_COOLDOWN_MS: u64 = 100;
 const GUN_TRAVEL_SPEED: f32 = 300.0;
+const DEG2RAD: f32 = PI / 180.0;
 
 #[derive(Inspectable)]
 enum PlayerAnimState {
@@ -43,6 +44,7 @@ pub struct Laser {
 enum Dir {
     Left,
     Right,
+    Down,
 }
 
 impl Plugin for PlayerPlugin {
@@ -62,10 +64,11 @@ fn bullet_travel(
     time: Res<Time>,
 ) {
     for (id, mut transform, laser) in query.iter_mut() {
-        transform.translation.x += time.delta_seconds()
+        transform.translation += time.delta_seconds()
             * match laser.direction {
-                Dir::Left => -GUN_TRAVEL_SPEED,
-                Dir::Right => GUN_TRAVEL_SPEED,
+                Dir::Left => Vec3::new(-GUN_TRAVEL_SPEED, 0.0, 0.0),
+                Dir::Right => Vec3::new(GUN_TRAVEL_SPEED, 0.0, 0.0),
+                Dir::Down => Vec3::new(0.0, -GUN_TRAVEL_SPEED, 0.0),
             };
 
         if transform.translation.x.abs() > 180.0 {
@@ -77,24 +80,46 @@ fn bullet_travel(
 fn shoot_gun(
     mut commands: Commands,
     keyboard: Res<Input<KeyCode>>,
-    mut query: Query<(&mut Gun, &mut TextureAtlasSprite, &GlobalTransform)>,
+    mut query: Query<(
+        &mut Gun,
+        &mut TextureAtlasSprite,
+        &mut Transform,
+        &GlobalTransform,
+    )>,
     time: Res<Time>,
     laser_sprite: Res<BulletSprite>,
 ) {
-    let (mut gun, mut gun_sprite, gun_transform) = query.single_mut();
+    let holding_down = keyboard.pressed(KeyCode::Down) || keyboard.pressed(KeyCode::S);
+    let (mut gun, mut gun_sprite, mut gun_transform, gun_transform_global) = query.single_mut();
 
     gun_sprite.index = 0;
 
     gun.timer.tick(time.delta());
 
+    if holding_down {
+        gun_transform.rotation = Quat::from_rotation_z(
+            90.0 * DEG2RAD
+                * match gun_sprite.flip_x {
+                    true => 1.0,
+                    false => -1.0,
+                },
+        );
+    } else {
+        gun_transform.rotation = Quat::default();
+    }
+
     if gun.timer.just_finished() && keyboard.pressed(KeyCode::Space) {
         gun_sprite.index = 1;
 
-        commands
+        let laser = commands
             .spawn_bundle(SpriteBundle {
                 texture: laser_sprite.0.clone(),
                 transform: Transform {
-                    translation: gun_transform.translation + Vec3::new(0.0, 1.0, -1.0),
+                    translation: gun_transform_global.translation + Vec3::new(0.0, 1.0, -1.0),
+                    rotation: match holding_down {
+                        false => Quat::default(),
+                        true => Quat::from_rotation_z(90.0 * DEG2RAD),
+                    },
                     ..Default::default()
                 },
                 ..Default::default()
@@ -103,11 +128,19 @@ fn shoot_gun(
             .insert(Sensor)
             .insert(ActiveEvents::COLLISION_EVENTS)
             .insert(Laser {
-                direction: match gun_sprite.flip_x {
-                    true => Dir::Left,
-                    false => Dir::Right,
+                direction: match holding_down {
+                    false => match gun_sprite.flip_x {
+                        true => Dir::Left,
+                        false => Dir::Right,
+                    },
+                    true => Dir::Down,
                 },
-            });
+            })
+            .id();
+
+        if holding_down {
+            commands.entity(laser).insert(Ground);
+        }
     }
 }
 
@@ -141,6 +174,7 @@ fn spawn_player(mut commands: Commands, sprite_sheet: Res<PlayerSheet>, gun_shee
             ..Default::default()
         })
         .insert(RigidBody::Dynamic)
+        .insert(LockedAxes::ROTATION_LOCKED)
         .insert(Velocity::default())
         .insert(GravityScale::default())
         .insert(Collider::cuboid(8.0, 10.5))
@@ -202,6 +236,7 @@ fn player_movement(
     let right = keyboard.pressed(KeyCode::D) || keyboard.pressed(KeyCode::Right);
     let left = keyboard.pressed(KeyCode::A) || keyboard.pressed(KeyCode::Left);
     let up = keyboard.pressed(KeyCode::W) || keyboard.pressed(KeyCode::Up);
+    let down = keyboard.pressed(KeyCode::S) || keyboard.pressed(KeyCode::Down);
 
     let mut delta_x = 0.0;
     if right {
@@ -225,7 +260,7 @@ fn player_movement(
         if vel.linvel[1] < 0.0 {
             *gravity = GravityScale(1.5);
         }
-    } else if up {
+    } else if up || (down && keyboard.pressed(KeyCode::Space)) {
         vel.linvel = Vec2::new(0.0, player.jump_force);
     } else {
         *gravity = GravityScale(1.0);
