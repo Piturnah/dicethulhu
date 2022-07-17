@@ -3,7 +3,7 @@ use bevy_inspector_egui::Inspectable;
 use bevy_rapier2d::prelude::*;
 use std::{f32::consts::PI, time::Duration};
 
-use crate::physics::GroundDetection;
+use crate::physics::{Ground, GroundDetection};
 use crate::{BulletSprite, GunSheet, PlayerSheet};
 
 pub struct PlayerPlugin;
@@ -111,7 +111,7 @@ fn shoot_gun(
     if gun.timer.just_finished() && keyboard.pressed(KeyCode::Space) {
         gun_sprite.index = 1;
 
-        commands
+        let laser = commands
             .spawn_bundle(SpriteBundle {
                 texture: laser_sprite.0.clone(),
                 transform: Transform {
@@ -135,7 +135,12 @@ fn shoot_gun(
                     },
                     true => Dir::Down,
                 },
-            });
+            })
+            .id();
+
+        if holding_down {
+            commands.entity(laser).insert(Ground);
+        }
     }
 }
 
@@ -231,6 +236,7 @@ fn player_movement(
     let right = keyboard.pressed(KeyCode::D) || keyboard.pressed(KeyCode::Right);
     let left = keyboard.pressed(KeyCode::A) || keyboard.pressed(KeyCode::Left);
     let up = keyboard.pressed(KeyCode::W) || keyboard.pressed(KeyCode::Up);
+    let down = keyboard.pressed(KeyCode::S) || keyboard.pressed(KeyCode::Down);
 
     let mut delta_x = 0.0;
     if right {
@@ -254,7 +260,7 @@ fn player_movement(
         if vel.linvel[1] < 0.0 {
             *gravity = GravityScale(1.5);
         }
-    } else if up {
+    } else if up || (down && keyboard.pressed(KeyCode::Space)) {
         vel.linvel = Vec2::new(0.0, player.jump_force);
     } else {
         *gravity = GravityScale(1.0);
