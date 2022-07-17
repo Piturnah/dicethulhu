@@ -3,8 +3,10 @@ use bevy_inspector_egui::Inspectable;
 use bevy_rapier2d::prelude::*;
 use std::{f32::consts::PI, time::Duration};
 
+use crate::health::{Damaged, Health};
 use crate::physics::{Ground, GroundDetection};
-use crate::{BulletSprite, GunSheet, PlayerSheet};
+use crate::ui::UpdatedHealth;
+use crate::{BulletSprite, GameState, GunSheet, PlayerSheet};
 
 pub struct PlayerPlugin;
 
@@ -49,12 +51,29 @@ enum Dir {
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_startup_system(spawn_player)
-            .add_system(animate_player)
-            .add_system(player_movement)
-            .add_system(gun_position)
-            .add_system(shoot_gun)
-            .add_system(bullet_travel);
+        app.add_startup_system(spawn_player).add_system_set(
+            SystemSet::on_update(GameState::Play)
+                .with_system(animate_player)
+                .with_system(player_movement)
+                .with_system(gun_position)
+                .with_system(shoot_gun)
+                .with_system(damage_from_beam)
+                .with_system(bullet_travel),
+        );
+    }
+}
+
+fn damage_from_beam(
+    //beam_query: Query<&Beam>,
+    //mut collisions: EventReader<CollisionEvent>
+    mut commands: Commands,
+    mut keyboard: ResMut<Input<KeyCode>>,
+    player: Query<Entity, With<Player>>,
+) {
+    if keyboard.just_pressed(KeyCode::T) {
+        keyboard.clear_just_pressed(KeyCode::T);
+        let player = player.single();
+        commands.entity(player).insert(Damaged);
     }
 }
 
@@ -71,7 +90,7 @@ fn bullet_travel(
                 Dir::Down => Vec3::new(0.0, -GUN_TRAVEL_SPEED, 0.0),
             };
 
-        if transform.translation.x.abs() > 180.0 {
+        if transform.translation.x.abs() > 180.0 || transform.translation.y.abs() > 100.0 {
             commands.entity(id).despawn_recursive();
         }
     }
@@ -89,7 +108,7 @@ fn shoot_gun(
     time: Res<Time>,
     laser_sprite: Res<BulletSprite>,
 ) {
-    let holding_down = keyboard.pressed(KeyCode::Down) || keyboard.pressed(KeyCode::S);
+    let holding_down = keyboard.just_pressed(KeyCode::Down) || keyboard.pressed(KeyCode::S);
     let (mut gun, mut gun_sprite, mut gun_transform, gun_transform_global) = query.single_mut();
 
     gun_sprite.index = 0;
@@ -183,6 +202,8 @@ fn spawn_player(mut commands: Commands, sprite_sheet: Res<PlayerSheet>, gun_shee
             jump_force: 200.0,
             anim_state: PlayerAnimState::Idle,
         })
+        .insert(Health { health: 5 })
+        .insert(UpdatedHealth)
         .insert(GroundDetection::default())
         .insert(Name::new("Player"))
         .id();

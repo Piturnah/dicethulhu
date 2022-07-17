@@ -4,23 +4,33 @@ use bevy_rapier2d::prelude::*;
 mod clouds;
 mod debug;
 mod enemy;
+mod health;
 mod physics;
 mod player;
+mod ui;
 
 use clouds::CloudsPlugin;
 use debug::DebugPlugin;
 use enemy::EnemyPlugin;
+use health::HealthPlugin;
 use physics::PhysicsPlugin;
 use player::PlayerPlugin;
+use ui::UiPlugin;
 
 const RESOLUTION: f32 = 16.0 / 9.0;
+const PIXEL_WIDTH: f32 = 320.0;
 
 struct PlayerSheet(Handle<TextureAtlas>);
 struct ArenaSprite(Handle<Image>);
 struct SkyboxSprite(Handle<Image>);
-struct CloudsSprite(Handle<Image>);
 struct BulletSprite(Handle<Image>);
 struct GunSheet(Handle<TextureAtlas>);
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Copy)]
+pub enum GameState {
+    DiceRoll,
+    Play,
+}
 
 fn load_graphics(
     mut commands: Commands,
@@ -43,8 +53,6 @@ fn load_graphics(
     commands.insert_resource(ArenaSprite(image_handle));
     let image_handle = assets.load("Skybox.png");
     commands.insert_resource(SkyboxSprite(image_handle));
-    let image_handle = assets.load("SkyboxClouds.png");
-    commands.insert_resource(CloudsSprite(image_handle));
     let image_handle = assets.load("Laser.png");
     commands.insert_resource(BulletSprite(image_handle));
 }
@@ -78,12 +86,43 @@ fn init_scene(
             ..Default::default()
         })
         .insert(Name::from("Skybox"));
+
+    commands
+        .spawn()
+        .insert(Collider::cuboid(1.0, PIXEL_WIDTH / RESOLUTION))
+        .insert(GlobalTransform::default())
+        .insert(Transform {
+            translation: Vec3::new(-(PIXEL_WIDTH / 2.0 + 1.0), 0.0, 0.0),
+            ..Default::default()
+        })
+        .insert(Name::from("Left wall"));
+
+    commands
+        .spawn()
+        .insert(Collider::cuboid(1.0, PIXEL_WIDTH / RESOLUTION))
+        .insert(GlobalTransform::default())
+        .insert(Transform {
+            translation: Vec3::new(PIXEL_WIDTH / 2.0 + 1.0, 0.0, 0.0),
+            ..Default::default()
+        })
+        .insert(Name::from("Right wall"));
+
+    commands
+        .spawn()
+        .insert(Collider::cuboid(PIXEL_WIDTH, 1.0))
+        .insert(GlobalTransform::default())
+        .insert(Transform {
+            translation: Vec3::new(0.0, PIXEL_WIDTH / (RESOLUTION * 2.0) + 1.0, 0.0),
+            ..Default::default()
+        })
+        .insert(Name::from("Ceiling"));
 }
 
 fn main() {
     let height = 900.0;
 
     App::new()
+        .add_state(GameState::DiceRoll)
         .insert_resource(WindowDescriptor {
             width: height * RESOLUTION,
             height,
@@ -102,6 +141,8 @@ fn main() {
         .add_plugin(PlayerPlugin)
         .add_plugin(PhysicsPlugin)
         .add_plugin(EnemyPlugin)
+        .add_plugin(UiPlugin)
+        .add_plugin(HealthPlugin)
         .add_startup_system_to_stage(StartupStage::PreStartup, load_graphics)
         .add_startup_system(spawn_camera)
         .add_startup_system(init_scene)

@@ -3,33 +3,29 @@ use bevy_rapier2d::prelude::*;
 use rand::{thread_rng, Rng};
 use std::time::Duration;
 
-use crate::player::{Laser, Player};
+use crate::{
+    health::{Damaged, Health, Invuln},
+    player::{Laser, Player},
+    GameState,
+};
 
 const ENEMY_ONE_HEALTH: u8 = 5;
 const ENEMY_ONE_COOLDOWN_SECS: f32 = 4.0;
 const ENEMY_ONE_COOLDOWN_VAR: f32 = 1.0;
 const ENEMY_ONE_SPEED: f32 = 70.0;
+const ENEMY_ONE_BEAM_MS: u64 = 600;
 
 pub struct EnemyPlugin;
 
 struct DicethulhuSheet(Handle<TextureAtlas>);
 struct EnemyOneSheet(Handle<TextureAtlas>);
 struct EnemyOneBeamSprite(Handle<Image>);
+//struct DiceRollSheet(Handle<Image>)
 
 #[derive(Component)]
 pub struct FacePlayer;
 #[derive(Component, Debug)]
 pub struct DiesToLaser;
-#[derive(Component, Debug)]
-pub struct Damaged;
-#[derive(Component, Debug)]
-pub struct Health {
-    health: u8,
-}
-#[derive(Component, Debug)]
-pub struct Invuln {
-    timer: Timer,
-}
 
 #[derive(Component)]
 pub struct Dicethulhu;
@@ -46,52 +42,39 @@ enum EnemyOneState {
     Attack,
 }
 #[derive(Component, Debug)]
-struct Beam;
+pub struct Beam {
+    timer: Timer,
+}
+
+impl Default for Beam {
+    fn default() -> Self {
+        Self {
+            timer: Timer::new(Duration::from_millis(ENEMY_ONE_BEAM_MS), false),
+        }
+    }
+}
 
 impl Plugin for EnemyPlugin {
     fn build(&self, app: &mut App) {
         app.add_startup_system_to_stage(StartupStage::PreStartup, load_graphics)
             .add_startup_system(spawn_dicethulhu)
-            .add_startup_system(spawn_enemy_one)
-            .add_system(face_player)
-            .add_system(check_for_laser)
-            .add_system(damaged)
             .add_system(animate_dicethulhu)
-            .add_system(animate_enemy_one)
-            .add_system(invuln)
-            .add_system(destroy_beam)
-            .add_system(enemy_one_movement);
+            .add_system_set(SystemSet::on_enter(GameState::Play).with_system(spawn_enemy_one))
+            .add_system_set(
+                SystemSet::on_update(GameState::Play)
+                    .with_system(face_player)
+                    .with_system(check_for_laser)
+                    .with_system(animate_enemy_one)
+                    .with_system(destroy_beam)
+                    .with_system(enemy_one_movement),
+            );
     }
 }
 
-fn destroy_beam(mut commands: Commands, query: Query<Entity, With<Beam>>) {
-    for beam in query.iter() {
-        commands.entity(beam).despawn_recursive();
-    }
-}
-
-fn invuln(
-    mut commands: Commands,
-    mut query: Query<(Entity, &mut TextureAtlasSprite, &mut Invuln)>,
-    time: Res<Time>,
-) {
-    for (id, mut sprite, mut invuln) in query.iter_mut() {
-        sprite.color.set_a(0.1);
-        invuln.timer.tick(time.delta());
-        if invuln.timer.just_finished() {
-            sprite.color.set_a(1.0);
-            commands.entity(id).remove::<Invuln>();
-        }
-    }
-}
-
-fn damaged(mut commands: Commands, mut query: Query<(Entity, &mut Health), Added<Damaged>>) {
-    for (id, mut health) in query.iter_mut() {
-        commands.entity(id).remove::<Damaged>().insert(Invuln {
-            timer: Timer::new(Duration::from_millis(200), false),
-        });
-        health.health -= 1;
-        if health.health == 0 {
+fn destroy_beam(mut commands: Commands, mut query: Query<(Entity, &mut Beam)>, time: Res<Time>) {
+    for (id, mut beam) in query.iter_mut() {
+        beam.timer.tick(time.delta());
+        if beam.timer.just_finished() {
             commands.entity(id).despawn_recursive();
         }
     }
@@ -188,7 +171,7 @@ fn animate_enemy_one(
     let frame = (time.time_since_startup().as_millis() / 100) % 7;
 
     for (id, mut enemy_sprite, mut enemy_transform, mut enemy_one) in query.iter_mut() {
-        if enemy_one.state == EnemyOneState::Attack && frame % 6 == 5 {
+        if enemy_one.state == EnemyOneState::Attack && frame % 7 == 6 {
             enemy_one.state = EnemyOneState::Move;
 
             let mut rng = thread_rng();
@@ -209,7 +192,7 @@ fn animate_enemy_one(
 
         let frame = match enemy_one.state {
             EnemyOneState::Idle | EnemyOneState::Move => (frame + 1) % 7,
-            EnemyOneState::Attack => frame % 5 + 7,
+            EnemyOneState::Attack => (frame % 7 + 7).min(11),
         };
 
         enemy_sprite.index = frame.try_into().expect("Should always fit into u128");
@@ -246,7 +229,8 @@ fn animate_enemy_one(
                     ..Default::default()
                 })
                 .insert(Collider::cuboid(167.0, 3.0))
-                .insert(Beam)
+                .insert(Sensor)
+                .insert(Beam::default())
                 .insert(Name::from("Beam"))
                 .id();
             commands.entity(id).add_child(beam);
@@ -258,32 +242,39 @@ fn animate_enemy_one(
 
 fn spawn_enemy_one(mut commands: Commands, sprite_sheet: Res<EnemyOneSheet>) {
     let mut rng = thread_rng();
-    commands
-        .spawn_bundle(SpriteSheetBundle {
-            sprite: TextureAtlasSprite::new(0),
-            texture_atlas: sprite_sheet.0.clone(),
-            transform: Transform {
-                translation: Vec3::new(50.0, -60.0, 100.0),
+    for _ in 0..5 {
+        commands
+            .spawn_bundle(SpriteSheetBundle {
+                sprite: TextureAtlasSprite::new(0),
+                texture_atlas: sprite_sheet.0.clone(),
+                transform: Transform {
+                    translation: Vec3::new(
+                        rng.gen_range(-150.0..=150.0),
+                        rng.gen_range(-60.0..=60.0),
+                        100.0,
+                    ),
+                    ..Default::default()
+                },
                 ..Default::default()
-            },
-            ..Default::default()
-        })
-        .insert(Collider::cuboid(10.5, 8.0))
-        .insert(ActiveCollisionTypes::default() | ActiveCollisionTypes::STATIC_STATIC)
-        .insert(FacePlayer)
-        .insert(DiesToLaser)
-        .insert(EnemyOne {
-            state: EnemyOneState::Idle,
-            attack_cooldown: Timer::from_seconds(
-                ENEMY_ONE_COOLDOWN_SECS
-                    + rng.gen_range(-ENEMY_ONE_COOLDOWN_VAR..=ENEMY_ONE_COOLDOWN_VAR),
-                false,
-            ),
-        })
-        .insert(Health {
-            health: ENEMY_ONE_HEALTH,
-        })
-        .insert(Name::from("EnemyOne"));
+            })
+            .insert(Collider::cuboid(10.5, 8.0))
+            .insert(Sensor)
+            .insert(ActiveCollisionTypes::default() | ActiveCollisionTypes::STATIC_STATIC)
+            .insert(FacePlayer)
+            .insert(DiesToLaser)
+            .insert(EnemyOne {
+                state: EnemyOneState::Idle,
+                attack_cooldown: Timer::from_seconds(
+                    ENEMY_ONE_COOLDOWN_SECS
+                        + rng.gen_range(-ENEMY_ONE_COOLDOWN_VAR..=ENEMY_ONE_COOLDOWN_VAR),
+                    false,
+                ),
+            })
+            .insert(Health {
+                health: ENEMY_ONE_HEALTH,
+            })
+            .insert(Name::from("EnemyOne"));
+    }
 }
 
 fn load_graphics(
