@@ -71,7 +71,7 @@ fn bullet_travel(
                 Dir::Down => Vec3::new(0.0, -GUN_TRAVEL_SPEED, 0.0),
             };
 
-        if transform.translation.x.abs() > 180.0 {
+        if transform.translation.x.abs() > 180.0 || transform.translation.y.abs() > 100.0 {
             commands.entity(id).despawn_recursive();
         }
     }
