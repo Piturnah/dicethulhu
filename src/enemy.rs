@@ -20,7 +20,7 @@ pub struct EnemyPlugin;
 struct DicethulhuSheet(Handle<TextureAtlas>);
 struct EnemyOneSheet(Handle<TextureAtlas>);
 struct EnemyOneBeamSprite(Handle<Image>);
-struct DiceRollSheet(Handle<Image>);
+struct DiceRollSheet(Handle<TextureAtlas>);
 
 struct EnemyCount(u8);
 
@@ -69,9 +69,72 @@ impl Plugin for EnemyPlugin {
                     .with_system(check_for_laser)
                     .with_system(animate_enemy_one)
                     .with_system(destroy_beam)
-                    .with_system(enemy_one_movement),
-            );
+                    .with_system(enemy_one_movement)
+                    .with_system(check_enemies_alive),
+            )
+            .add_system_set(SystemSet::on_enter(GameState::DiceRoll).with_system(spawn_dice))
+            .add_system_set(SystemSet::on_exit(GameState::DiceRoll).with_system(despawn_dice))
+            .add_system_set(SystemSet::on_update(GameState::DiceRoll).with_system(animate_dice));
     }
+}
+
+#[derive(Component)]
+struct DiceAnim {
+    timer: Timer,
+}
+
+fn check_enemies_alive(query: Query<&EnemyOne>, mut state: ResMut<State<GameState>>) {
+    if query.iter().len() == 0 {
+        state.set(GameState::DiceRoll);
+    }
+}
+
+fn animate_dice(
+    mut commands: Commands,
+    mut state: ResMut<State<GameState>>,
+    mut query: Query<(&mut TextureAtlasSprite, &mut DiceAnim)>,
+    time: Res<Time>,
+) {
+    let (mut sprite, mut timer) = query.single_mut();
+    timer.timer.tick(time.delta());
+
+    if timer.timer.just_finished() {
+        state.set(GameState::Play);
+    }
+
+    let elapsed = timer.timer.elapsed().as_millis();
+    let frame = (elapsed / 200) + 13;
+    if frame == 26 {
+        let mut rng = thread_rng();
+        let face_index = rng.gen_range(0..6);
+        commands.insert_resource(EnemyCount(face_index + 1));
+        sprite.index = face_index.try_into().unwrap();
+    } else if frame < 26 {
+        sprite.index = frame.try_into().unwrap();
+    }
+}
+
+fn despawn_dice(mut commands: Commands, query: Query<Entity, With<DiceAnim>>) {
+    for id in query.iter() {
+        commands.entity(id).despawn_recursive();
+    }
+}
+
+fn spawn_dice(mut commands: Commands, dice_sheet: Res<DiceRollSheet>) {
+    commands
+        .spawn_bundle(SpriteSheetBundle {
+            sprite: TextureAtlasSprite::new(13),
+            texture_atlas: dice_sheet.0.clone(),
+            transform: Transform {
+                translation: Vec3::new(-2.0, 60.0, 200.0),
+                ..Default::default()
+            },
+            ..Default::default()
+        })
+        .insert(DiceAnim {
+            timer: Timer::new(Duration::from_millis(3000), false),
+        })
+        .insert(Name::from("Dice"));
 }
 
 fn destroy_beam(mut commands: Commands, mut query: Query<(Entity, &mut Beam)>, time: Res<Time>) {
@@ -308,11 +371,11 @@ fn load_graphics(
     let atlas_handle = texture_atlases.add(atlas);
     commands.insert_resource(EnemyOneSheet(atlas_handle));
 
-    // let image = assets.load("Dice.png");
-    // let atlas =
-    //     TextureAtlas::from_grid_with_padding(image, Vec2::new(21.0, 16.0), 7, 2, Vec2::splat(2.0));
-    // let atlas_handle = texture_atlases.add(atlas);
-    // commands.insert_resource(EnemyOneSheet(atlas_handle));
+    let image = assets.load("AnimatedDice.png");
+    let atlas =
+        TextureAtlas::from_grid_with_padding(image, Vec2::new(80.0, 80.0), 13, 2, Vec2::splat(2.0));
+    let atlas_handle = texture_atlases.add(atlas);
+    commands.insert_resource(DiceRollSheet(atlas_handle));
 
     let image = assets.load("Enemy1Beam.png");
     commands.insert_resource(EnemyOneBeamSprite(image));
