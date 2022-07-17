@@ -1,6 +1,6 @@
 # Dicethulhu
 
-Our submission for [GMTK 2022](https://itch.io/jam/gmtk-jam-2022). The theme for the jam was **Role of the dice**.
+Game made in 48 hours for [GMTK 2022](https://itch.io/jam/gmtk-jam-2022). The theme for the jam was **Role of the dice**.
 
 For this jam we used the [Bevy](https://github.com/bevyengine/bevy) game engine which we've never used before. Overall it was a very good experience, personally my new favourite game engine!
 
