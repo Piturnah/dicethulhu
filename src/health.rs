@@ -1,11 +1,12 @@
 use bevy::prelude::*;
+use bevy_inspector_egui::Inspectable;
 use std::time::Duration;
 
 pub struct HealthPlugin;
 
 #[derive(Component, Debug)]
 pub struct Damaged;
-#[derive(Component, Debug)]
+#[derive(Component, Debug, Inspectable)]
 pub struct Health {
     pub health: u8,
 }
