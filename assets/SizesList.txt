@@ -8,3 +8,5 @@ Enemy5F	- 12 x 14
 Enemy6	- 32 x 41
 Dicethulhu - 320 x 180
 Buttons - 109 x 38
+AnimatedDice - 80 x 80
+StaticDice - 48 x 49
