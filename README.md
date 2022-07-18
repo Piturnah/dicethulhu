@@ -12,7 +12,7 @@ For this jam we used the [Bevy](https://github.com/bevyengine/bevy) game engine 
 - [Rust](https://github.com/rust-lang/rust)
 - [Bevy](https://github.com/bevyengine/bevy)
 - [Bevy Rapier](https://github.com/dimforge/bevy_rapier)
-- [BevyInspector EGUI](https://github.com/jakobhellermann/bevy-inspector-egui)
+- [Bevy Inspector EGUI](https://github.com/jakobhellermann/bevy-inspector-egui)
 - [Aseprite](https://www.aseprite.org/)
 
 # Credits
