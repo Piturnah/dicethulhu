@@ -4,6 +4,10 @@ Game made in 48 hours for [GMTK 2022](https://itch.io/jam/gmtk-jam-2022). The th
 
 For this jam we used the [Bevy](https://github.com/bevyengine/bevy) game engine which we've never used before. Overall it was a very good experience, personally my new favourite game engine!
 
+<a href="https://piturnah.itch.io/dicethulhu">
+  <img height="100" src="http://jessemillar.github.io/available-on-itchio-badge/badge-bw.png">
+</a>
+
 # Tools
 - [Rust](https://github.com/rust-lang/rust)
 - [Bevy](https://github.com/bevyengine/bevy)
