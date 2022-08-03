@@ -19,7 +19,7 @@ impl Plugin for DebugPlugin {
                 .register_inspectable::<Player>()
                 .register_inspectable::<GroundDetection>()
                 .register_inspectable::<Health>()
-                .add_system(bevy::input::system::exit_on_esc_system);
+                .add_system(bevy::window::close_on_esc);
         }
     }
 }

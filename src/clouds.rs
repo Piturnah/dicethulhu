@@ -34,6 +34,7 @@ fn load_graphics(
         3,
         1,
         Vec2::splat(2.0),
+        Vec2::ZERO,
     );
     let atlas_handle = texture_atlases.add(atlas);
     commands.insert_resource(CloudsSheet(atlas_handle));

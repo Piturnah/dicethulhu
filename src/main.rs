@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, render::texture::ImageSettings};
 use bevy_rapier2d::prelude::*;
 
 mod clouds;
@@ -38,14 +38,26 @@ fn load_graphics(
     mut texture_atlases: ResMut<Assets<TextureAtlas>>,
 ) {
     let image = assets.load("LittleGuy.png");
-    let atlas =
-        TextureAtlas::from_grid_with_padding(image, Vec2::new(16.0, 21.0), 6, 2, Vec2::splat(2.0));
+    let atlas = TextureAtlas::from_grid_with_padding(
+        image,
+        Vec2::new(16.0, 21.0),
+        6,
+        2,
+        Vec2::splat(2.0),
+        Vec2::ZERO,
+    );
     let atlas_handle = texture_atlases.add(atlas);
     commands.insert_resource(PlayerSheet(atlas_handle));
 
     let image = assets.load("Gun.png");
-    let atlas =
-        TextureAtlas::from_grid_with_padding(image, Vec2::new(23.0, 9.0), 2, 1, Vec2::splat(2.0));
+    let atlas = TextureAtlas::from_grid_with_padding(
+        image,
+        Vec2::new(23.0, 9.0),
+        2,
+        1,
+        Vec2::splat(2.0),
+        Vec2::ZERO,
+    );
     let atlas_handle = texture_atlases.add(atlas);
     commands.insert_resource(GunSheet(atlas_handle));
 
@@ -58,8 +70,8 @@ fn load_graphics(
 }
 
 fn spawn_camera(mut commands: Commands) {
-    let mut camera = OrthographicCameraBundle::new_2d();
-    camera.orthographic_projection.scale = 0.2;
+    let mut camera = Camera2dBundle::default();
+    camera.projection.scale = 0.2;
 
     commands.spawn_bundle(camera);
 }
@@ -122,6 +134,7 @@ fn main() {
     let height = 900.0;
 
     App::new()
+        .insert_resource(ImageSettings::default_nearest())
         .add_state(GameState::DiceRoll)
         .insert_resource(WindowDescriptor {
             width: height * RESOLUTION,

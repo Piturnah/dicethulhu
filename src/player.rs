@@ -138,7 +138,7 @@ fn shoot_gun(
             .spawn_bundle(SpriteBundle {
                 texture: laser_sprite.0.clone(),
                 transform: Transform {
-                    translation: gun_transform_global.translation + Vec3::new(0.0, 1.0, -1.0),
+                    translation: gun_transform_global.translation() + Vec3::new(0.0, 1.0, -1.0),
                     rotation: match holding_down {
                         false => Quat::default(),
                         true => Quat::from_rotation_z(90.0 * DEG2RAD),

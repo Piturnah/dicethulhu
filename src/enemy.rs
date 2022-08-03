@@ -361,19 +361,32 @@ fn load_graphics(
         16,
         1,
         Vec2::splat(2.0),
+        Vec2::ZERO,
     );
     let atlas_handle = texture_atlases.add(atlas);
     commands.insert_resource(DicethulhuSheet(atlas_handle));
 
     let image = assets.load("Enemy1.png");
-    let atlas =
-        TextureAtlas::from_grid_with_padding(image, Vec2::new(21.0, 16.0), 7, 2, Vec2::splat(2.0));
+    let atlas = TextureAtlas::from_grid_with_padding(
+        image,
+        Vec2::new(21.0, 16.0),
+        7,
+        2,
+        Vec2::splat(2.0),
+        Vec2::ZERO,
+    );
     let atlas_handle = texture_atlases.add(atlas);
     commands.insert_resource(EnemyOneSheet(atlas_handle));
 
     let image = assets.load("AnimatedDice.png");
-    let atlas =
-        TextureAtlas::from_grid_with_padding(image, Vec2::new(80.0, 80.0), 13, 2, Vec2::splat(2.0));
+    let atlas = TextureAtlas::from_grid_with_padding(
+        image,
+        Vec2::new(80.0, 80.0),
+        13,
+        2,
+        Vec2::splat(2.0),
+        Vec2::ZERO,
+    );
     let atlas_handle = texture_atlases.add(atlas);
     commands.insert_resource(DiceRollSheet(atlas_handle));
 
